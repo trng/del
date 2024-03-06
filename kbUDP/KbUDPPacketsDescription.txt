@@ -111,8 +111,10 @@ COMMANDS - DETAILED DESCRIPTION
     byte[1]                                  : {73}
     byte[2]                                  : {1}                                    (unsiged char)
     byte[3]                                  : {1-255}    timer number                (unsiged char)
-    byte[4]                                  : {0-255}    starting time - minutes     (unsiged char)
-    byte[5]                                  : {0-60 }    starting time - seconds     (unsiged char)
+    byte[4]                                  : {0-255}    start time - minutes        (unsiged char)
+    byte[5]                                  : {0-60 }    start time - seconds        (unsiged char)
+    byte[6]                                  : {0-255}    end time - minutes          (unsiged char)
+    byte[7]                                  : {0-60 }    end time - seconds          (unsiged char)
 
     | RESPONSE  |
     | STRUCTURE |
@@ -198,8 +200,11 @@ COMMANDS - DETAILED DESCRIPTION
     byte[1]                                  : {73}
     byte[2]                                  : {5}             command                  (unsiged char)
     byte[3]                                  : {1-255}         timer number             (unsiged char)
-    byte[4 .. up-to-null-character]          : {bytearray}     http url to send command to vmix (null-terminated byte-array)
-    byte[end-of-http-url .. up-to-null-char] : {bytearray}     placeholder for time in http url (null-terminated byte-array)
+    byte[4..7]                               : {four octets}   ipv4 adress              (byte-array)
+    byte[8..9]                               : {0-65535}       tcp port number          (unsigned int16, little-endian)
+    byte[10 .. up-to-null-character]         : {bytearray}     path (url without "scheme://address:port" to send command to vmix (null-terminated byte-array)
+    
+                                              *** For future using *** byte[end-of-http-url .. up-to-null-char] : {bytearray}     placeholder for time in http url (null-terminated byte-array) ***
 
 
     | RESPONSE  |
@@ -265,7 +270,40 @@ COMMANDS - DETAILED DESCRIPTION
                                                    
                                                    
 
-    After successful response (byte[0]=0), subscriber will receive (every seconds) timer status within six-bytes udp packet:
+    After successful response (byte[2]=0), subscriber will receive (every seconds) timer status within six-bytes udp packet:
+    byte[0]                                  : {37}        Two-bytes IFF
+    byte[1]                                  : {37}
+    byte[2]                                  : {2}         packet has payload       (unsiged char)
+    byte[3]                                  : {1..255}    timer number             (unsiged char)
+    byte[4]                                  : {0..255}    timer status - minutes   (unsiged char)
+    byte[5]                                  : {0..59 }    timer status - seconds   (unsiged char)
+
+
+******************************************************************************
+
+
+8 : SUBSCRIBE TO EVENT - TIMER STOP  (if end time specified for "start timer" command)
+    | REQUEST   |
+    | STRUCTURE |
+    byte[0]                                  : {73}             Two-bytes IFF
+    byte[1]                                  : {73}
+    byte[2]                                  : {8}               command            (unsiged char)
+    byte[3]                                  : {0-255}           timer number       (unsiged char)
+    byte[4..7]                               : {four octets}     ipv4 adress        (byte-array)
+    byte[8..9]                               : {0-65535}         udp port number    (unsigned int16, little-endian)
+
+    | RESPONSE  |
+    | STRUCTURE |
+    byte[0]                                  : {37}       Two-bytes IFF
+    byte[1]                                  : {37}
+    byte[2]                                  : {0..1}     response status           (unsiged char)
+                                                          0 - everything is good         
+                                                          1 - everything is bad 
+                                                         (1 means wrong number of command args in most cases)
+                                                   
+                                                   
+
+    After successful response (byte[2]=0), subscriber will receive timer status within six-bytes udp packet:
     byte[0]                                  : {37}        Two-bytes IFF
     byte[1]                                  : {37}
     byte[2]                                  : {2}         packet has payload       (unsiged char)

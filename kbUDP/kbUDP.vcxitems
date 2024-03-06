@@ -14,12 +14,16 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="$(MSBuildThisFileDirectory)KbTickerClass.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)KbTickerReceivers.cpp">
+      <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdcpp20</LanguageStandard>
+    </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)KbTickerThreadedClass.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)KbUDPserverClass.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)KbTickerReceivers.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)KbUdpPacketHeaders.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)KbTickerClass.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)KbTickerThreadedClass.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)KbUDPserverClass.h" />
   </ItemGroup>
   <ItemGroup>

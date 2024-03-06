@@ -5,12 +5,12 @@
 #include <iostream>
 
 #pragma comment(lib,"ws2_32.lib") // Winsock Library
-#pragma warning(disable:4996)     // disable warning/error for obsolete inet_addr function
+#pragma warning(disable:4996)     // disable warning/error for obsolete (but useful) inet_addr function
 #include <winsock2.h>
 
 #include "Stringer.h"
 #include "KbUdpPacketHeaders.h"
-#include "KbTickerClass.h"
+#include "KbTickerThreadedClass.h"
 
 
 #define BUFLEN 1472
@@ -23,11 +23,11 @@ class KbUDPServerClass {
 
 
 private:
-    SOCKET           server_socket;
-    sockaddr_in      server, client = { 0 };
-    bool             exitRequested = false;
-    uint16_t         port_to_bind_to_;
-    MyThreadedClass  myObject;
+    SOCKET                  server_socket;
+    sockaddr_in             server, client = { 0 };
+    bool                    exitRequested = false;
+    uint16_t                port_to_bind_to_;
+    KbTickerThreadedClass   first_ticker;
 
 
 public:
@@ -60,7 +60,7 @@ public:
     ~KbUDPServerClass() {
         closesocket(server_socket);
         WSACleanup();
-        myObject.stopThreadFunction();
+        first_ticker.stopThreadFunction();
     }
 
     /**
@@ -182,9 +182,9 @@ public:
                     case 2: break;
                     case 3: break;
                     case 4: break;
-                    case 5: break;
+                    case 5: addHttpReceiver(message, message_len);  break;
                     case 6: getTimerHandler(message, message_len);  break;
-                    case 7: subscribeToTimerHandler(message, message_len); break;
+                    case 7: addUdpReceiver(message, message_len); break;
                     default: break;
                 }
             }
@@ -219,17 +219,17 @@ public:
         // parse starttimer header
         StartTimerRequestUdpPacketHeader * pktHdr;
         pktHdr = (StartTimerRequestUdpPacketHeader*) message;
-        if (pktHdr->timer_no > 0 && pktHdr->seconds < 60) {
+        if (pktHdr->timer_no > 0 && pktHdr->start_seconds < 60) {
 
             resopnse_status = 0;
-            printf("\ncommand %d   timer_no %d     start_mins %d     start_secs %d\n", pktHdr->command, pktHdr->timer_no, pktHdr->minutes, pktHdr->seconds);
+            printf("\ncommand %d   timer_no %d     start_mins %d     start_secs %d     end_mins %d     end_secs %d\n", pktHdr->command, pktHdr->timer_no, pktHdr->start_minutes, pktHdr->start_seconds, pktHdr->end_minutes, pktHdr->end_seconds);
 
             //KbTickerClass kbtc;
             // auto t = kbtc.start();
-            if (myObject.isThreadActive()) {
-                myObject.stopThreadFunction();
+            if (first_ticker.isThreadActive()) {
+                first_ticker.stopThreadFunction();
             }
-            myObject.startThread(pktHdr->minutes, pktHdr->seconds);
+            first_ticker.startThread(pktHdr->start_minutes, pktHdr->start_seconds, pktHdr->end_minutes, pktHdr->end_seconds);
         }
         else {
             // everyting is bad
@@ -267,26 +267,56 @@ public:
     };
 
 
-    void subscribeToTimerHandler(const char* message, const int message_len) {
-        cout << "\n\nsubscribeToTimerHandler\n\n";
+    void addUdpReceiver(const char* message, const int message_len) {
+        cout << "\n\nsubscribeToTimer Handler\n\n";
         
         /**
         *   First three bytes already checked (73, 73, command-code)
         */ 
 
         // parse starttimer header
-        SubscribeToTimerRequestUdpPacketHeader * pktHdr  = (SubscribeToTimerRequestUdpPacketHeader*)message;
+        AddTimerUdpReceiverRequestUdpPacketHeader * pktHdr  = (AddTimerUdpReceiverRequestUdpPacketHeader*)message;
+        GeneralResponseUdpPacketHeader response_pkt_hdr;
         if (pktHdr->timer_no == 0) {
             // error
+            response_pkt_hdr.response_code = KbResponseCodesEnum::wrong_timer_number;
         }
         else {
             printf("\ncommand %d   timer_no %d     \n", pktHdr->command, pktHdr->timer_no);
-            myObject.socketInit(pktHdr->ipv4_addr, pktHdr->udp_port);
-           
+            //first_ticker.socketInit(pktHdr->ipv4_addr, pktHdr->udp_port);
+            first_ticker.udp_tcp_receivers.addUdpReceiver(pktHdr->ipv4_addr, pktHdr->udp_port);
         }
-        GeneralResponseUdpPacketHeader response_pkt_hdr;
+        
         if (sendto(server_socket, (char*)&response_pkt_hdr, sizeof(response_pkt_hdr), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR)
             printf("sendto() failed with error code: %d", WSAGetLastError());
     }
+
+    void addHttpReceiver(const char* message, const int message_len) {
+        cout << "\n\nAdd Http Receiver\n\n";
+
+        /**
+        *   First three bytes already checked (73, 73, command-code)
+        */
+
+        // parse starttimer header
+        AddTimerHttpReceiverRequestUdpPacketHeader* pktHdr = (AddTimerHttpReceiverRequestUdpPacketHeader*)message;
+        GeneralResponseUdpPacketHeader response_pkt_hdr;
+        if (pktHdr->fixed_part.timer_no == 0) {
+            // error
+            response_pkt_hdr.response_code = KbResponseCodesEnum::wrong_timer_number;
+        }
+        else {
+            printf("\ncommand %d   timer_no %d     \n", pktHdr->fixed_part.command, pktHdr->fixed_part.timer_no);
+            //first_ticker.socketInit(pktHdr->ipv4_addr, pktHdr->udp_port);
+            // message[message_len] = 0;
+            //string s = message;
+            //s.erase(0, sizeof(AddTimerHttpReceiverRequestUdpPacketHeader));
+            first_ticker.udp_tcp_receivers.addHttpReceiver(pktHdr->fixed_part.ipv4_addr, pktHdr->fixed_part.tcp_port, pktHdr->path);
+        }
+
+        if (sendto(server_socket, (char*)&response_pkt_hdr, sizeof(response_pkt_hdr), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR)
+            printf("sendto() failed with error code: %d", WSAGetLastError());
+    }
+
 
 }; // End of KbUDPserverClass

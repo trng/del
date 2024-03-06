@@ -1,9 +1,57 @@
+#include <string>
+#include <iostream>
+
+
+struct Abc {
+    uint8_t a = 'a';
+    uint8_t b = 'b';
+    uint8_t c = 'c';
+};
+
+using namespace std;
+
+int main()
+{
+    char charbuf[1472];
+    Abc * pktHdr = (Abc *) charbuf;
+    pktHdr->a = 'd';
+    pktHdr->b = 'e';
+    pktHdr->c = 'f';
+    charbuf[sizeof(*pktHdr)] = 0;
+
+    string s = "just string";
+    string str = charbuf + s;
+    str.erase(0, sizeof(Abc));
+
+
+    std::cout << str;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
 #include <chrono>
 #include <iostream>
 #include <format>
 #include <string>
 
 using namespace std::literals;
+
 
 int main()
 {
@@ -15,16 +63,21 @@ int main()
     std::cout << std::format("{:#02}", 5) << '\n';
     std::cout << std::format("{:#02}", 55) << '\n';
     std::cout << std::format("{:#02}", 555) << '\n';
+    std::cout << std::format("{:#02}%3A{:#02}", 45, 00) << '\n';
 
 
     //    << "%T: " << std::format("{:%S}", timenow) << '\n';
 }
-//
-//Output:
-//% R : 16 : 32
-//% T : 16 : 32 : 10
 
-/*
+
+
+
+
+
+
+
+
+
 #include <string.h>
 
 #pragma warning(disable:4996)     // disable warning/error for obsolete inet_addr function

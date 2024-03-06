@@ -4,28 +4,27 @@
     <Filter Include="KbUDPclasses">
       <UniqueIdentifier>{205cc8b6-1323-4c81-b6a0-8eea390277c8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="KbUDPheaders">
-      <UniqueIdentifier>{f1c6ff16-7217-45b4-abe7-43f00b21ad54}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)KbUDPserverClass.cpp">
       <Filter>KbUDPclasses</Filter>
     </ClCompile>
-    <ClCompile Include="$(MSBuildThisFileDirectory)KbTickerClass.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)KbTickerThreadedClass.cpp">
       <Filter>KbUDPclasses</Filter>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)KbTickerReceivers.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)KbUDPserverClass.h">
       <Filter>KbUDPclasses</Filter>
     </ClInclude>
-    <ClInclude Include="$(MSBuildThisFileDirectory)KbTickerClass.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)KbTickerThreadedClass.h">
       <Filter>KbUDPclasses</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)KbUdpPacketHeaders.h">
-      <Filter>KbUDPheaders</Filter>
+      <Filter>KbUDPclasses</Filter>
     </ClInclude>
+    <ClInclude Include="$(MSBuildThisFileDirectory)KbTickerReceivers.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="$(MSBuildThisFileDirectory)KbUDPPacketsDescription.txt">

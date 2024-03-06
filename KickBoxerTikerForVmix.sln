@@ -16,6 +16,9 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "KbUDPclient", "KbUDPclient\KbUDPclient.vcxproj", "{54E0E213-312E-48BC-B8D9-87B05286D981}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{23B385E9-6FF0-44CB-918B-3CB6852D7B66}"
+	ProjectSection(SolutionItems) = preProject
+		kbUDP\KbUDPPacketsDescription.txt = kbUDP\KbUDPPacketsDescription.txt
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ConsoleApplication1", "ConsoleApplication1\ConsoleApplication1.vcxproj", "{B1AF5454-ED80-4D6F-8F03-E15DA5767459}"
 EndProject

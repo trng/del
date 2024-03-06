@@ -55,8 +55,8 @@ public:
         WSACleanup();
     }
 
-    udp_message_T sendUDPmessage(const char * message, int message_len) {
-        udp_message_T server_answer_buf;
+    UDPmessageStruct sendUDPmessage(const char * message, int message_len) {
+        UDPmessageStruct server_answer_buf{};
         if (sendto(client_socket, message, message_len, 0, (sockaddr*)&server, sizeof(sockaddr_in)) == SOCKET_ERROR) {
             printf("sendto() failed with error code: %d", WSAGetLastError());
             exit(EXIT_FAILURE);
@@ -86,15 +86,15 @@ public:
                 s = message; // char[] -> String
                 s = Stringer::singleWhitespaces(Stringer::ltrimRtrim(s)); // ltrim + rtrim and singleWhitespaces inside
                 switch (message[0]) {
-                    case '0': zeroHandler(s.data()); break;
-                    case '1': startTimer(s.data());  break;
+                    case '0': zeroHandler(s); break;
+                    case '1': startTimer(s);  break;
                     case '2': break;
                     case '3': break;
                     case '4': break;
-                    case '5': break;
-                    case '6': getTimer(s.data());  break;
-                    case '7': subscribeToTimer(s.data());  break;
-                    default : zeroHandler(s.data()); break;
+                    case '5': addTimerHttpReceiver(s);  break;
+                    case '6': getTimer(s);  break;
+                    case '7': subscribeToTimer(s);  break;
+                    default : zeroHandler(s); break;
                 }
             }
             else {
@@ -118,13 +118,14 @@ public:
             printf("Wrong number of arguments for startTimer. Expected: %d. Founded: %zu.\n", StartTimerRequestUdpPacketHeaderSignificantFieldsCount, tokens.size());
         }
         else {
-            request_pkt_hdr.command  = strToChar(tokens[0]);
-            request_pkt_hdr.timer_no = strToChar(tokens[1]);
-            request_pkt_hdr.minutes  = strToChar(tokens[2]);
-            request_pkt_hdr.seconds  = strToChar(tokens[3]);
-            udp_message_T server_resnonse = sendUDPmessage((char*)&request_pkt_hdr, sizeof(request_pkt_hdr));
+            request_pkt_hdr.command       = strToChar(tokens[0]);
+            request_pkt_hdr.timer_no      = strToChar(tokens[1]);
+            request_pkt_hdr.start_minutes = strToChar(tokens[2]);
+            request_pkt_hdr.start_seconds = strToChar(tokens[3]);
+            request_pkt_hdr.end_minutes   = strToChar(tokens[4]);
+            request_pkt_hdr.end_seconds   = strToChar(tokens[5]);
+            UDPmessageStruct server_resnonse = sendUDPmessage((char*)&request_pkt_hdr, sizeof(request_pkt_hdr));
             if (server_resnonse.message_len > 0)
-                // cout << "\nServer response for getTimer() request: " << server_resnonse.message << "\n\n\n";
                 printf("\nServer response for getTimer() request: %.*s\n\n\n", server_resnonse.message_len, server_resnonse.message);
             else
                 cout << "\nServer responded with zero length message\n\n\n";
@@ -144,7 +145,7 @@ public:
         else {
             request_pkt_hdr.command  = strToChar(tokens[0]);
             request_pkt_hdr.timer_no = strToChar(tokens[1]);
-            udp_message_T server_response_buf;
+            UDPmessageStruct server_response_buf;
             // no variable lenght params in this request. So, request header is a full request message
             server_response_buf = sendUDPmessage((char*)&request_pkt_hdr, sizeof(request_pkt_hdr));
             if (server_response_buf.message_len > 0) {
@@ -159,12 +160,11 @@ public:
 
     void subscribeToTimer(std::string s) {
         cout << "Subscribe to timer request\n";
-        SubscribeToTimerRequestUdpPacketHeader request_pkt_hdr;
+        AddTimerUdpReceiverRequestUdpPacketHeader request_pkt_hdr;
         std::vector<std::string> tokens = splitToVector(s);
-        if ( tokens.size() != SubscribeToTimerRequestUdpPacketHeaderSignificantFieldsCount + 3 ) {
-            printf("Wrong number of arguments for subscribe to timer . Expected: %d. Founded: %zu.\n", SubscribeToTimerRequestUdpPacketHeaderSignificantFieldsCount, tokens.size());
-        }
-        else {
+        if ( tokens.size() != AddTimerUdpReceiverRequestUdpPacketHeaderSignificantFieldsCount + 3 ) {
+            printf("Wrong number of arguments for subscribe to timer . Expected: %d. Founded: %zu.\n", AddTimerUdpReceiverRequestUdpPacketHeaderSignificantFieldsCount, tokens.size());
+        } else {
             request_pkt_hdr.command      = strToChar(tokens[0]);
             request_pkt_hdr.timer_no     = strToChar(tokens[1]);
             request_pkt_hdr.ipv4_addr[0] = strToChar(tokens[2]);
@@ -173,7 +173,7 @@ public:
             request_pkt_hdr.ipv4_addr[3] = strToChar(tokens[5]);
             request_pkt_hdr.udp_port     = stoi(tokens[6]);
 
-            udp_message_T server_response_buf;
+            UDPmessageStruct server_response_buf;
             // no variable lenght params in this request. So, request header is a full request message
             server_response_buf = sendUDPmessage((char*)&request_pkt_hdr, sizeof(request_pkt_hdr));
             if (server_response_buf.message_len > 0)
@@ -183,7 +183,32 @@ public:
         }
     }
 
+    void addTimerHttpReceiver(std::string s) {
+        cout << "Add timer http receiver request\n";
+        AddTimerHttpReceiverRequestUdpPacketHeader request_pkt_hdr;
+        std::vector<std::string> tokens = splitToVector(s);
+        if (tokens.size() != AddTimerHttpReceiverRequestUdpPacketHeaderSignificantFieldsCount + 3) {
+            printf("Wrong number of arguments for subscribe to timer . Expected: %d. Founded: %zu.\n", AddTimerUdpReceiverRequestUdpPacketHeaderSignificantFieldsCount, tokens.size());
+        }
+        else {
+            request_pkt_hdr.fixed_part = {
+                .command = strToChar(tokens[0]),
+                .timer_no = strToChar(tokens[1]),
+                .ipv4_addr = {strToChar(tokens[2]), strToChar(tokens[3]), strToChar(tokens[4]), strToChar(tokens[5])},
+                .tcp_port = (uint16_t)stoi(tokens[6])
+            };
+            strcpy(request_pkt_hdr.path, tokens[7].c_str()); // String -> char[]
+            int csize = strlen(request_pkt_hdr.path);
+            UDPmessageStruct server_response_buf;
+            server_response_buf = sendUDPmessage((char *)&request_pkt_hdr, sizeof(request_pkt_hdr.fixed_part)+csize);
+            if (server_response_buf.message_len > 0)
+                cout << "\nServer response: " << Stringer::charBufToCharCodes(server_response_buf.message, server_response_buf.message_len) << "\n\n\n";
+            else
+                cout << "\nServer responded with zero length message\n\n\n";
+        }
 
+
+    }
 
 
     /**
