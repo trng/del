@@ -26,7 +26,7 @@ private:
 
 public:
     KbTickerReceiverBaseType(uint8_t ipaddr[4], uint16_t PORT, string path = "") {
-        memcpy_s(&ipaddr_, sizeof(ipaddr_), ipaddr, sizeof(ipaddr));
+        memcpy_s(&ipaddr_, sizeof(ipaddr_), ipaddr, sizeof(ipaddr_));
         PORT_ = PORT;
         path_ = path;
     }
@@ -152,6 +152,10 @@ class KbTickerReceivers
 {
 
 public:
+    /**
+     * @brief <vector> (storage for receivers)
+     *
+     */
     vector<std::unique_ptr<KbTickerReceiverBaseType>> ticker_receivers;
 
     /**
@@ -163,7 +167,7 @@ public:
         for (const auto& obj : ticker_receivers)
             if ( obj->receiverExist(ipaddr, PORT, "") ) return;
         ticker_receivers.push_back(std::make_unique<KbTickerUdpReceiver>(ipaddr, PORT));
-        cout << "Ticker receiver added. ticker_receivers.size() = " << ticker_receivers.size() << "\n";
+        cout << "\nTicker receiver added. ticker_receivers.size() = " << ticker_receivers.size() << "\n";
     }
 
     /**

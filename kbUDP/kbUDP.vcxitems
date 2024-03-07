@@ -17,11 +17,13 @@
     <ClCompile Include="$(MSBuildThisFileDirectory)KbTickerReceivers.cpp">
       <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">stdcpp20</LanguageStandard>
     </ClCompile>
+    <ClCompile Include="$(MSBuildThisFileDirectory)KbTickers.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)KbTickerThreadedClass.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)KbUDPserverClass.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)KbTickerReceivers.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)KbTickers.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)KbUdpPacketHeaders.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)KbTickerThreadedClass.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)KbUDPserverClass.h" />

@@ -20,7 +20,7 @@ class KbTickerThreadedClass {
 
 private:
     std::thread myThread;
-    bool stopThreadFlag;
+    bool stopThreadFlag = true;
     SendTimerUdpPacketHeader udp_pkt_buf;
     std::chrono::time_point<std::chrono::system_clock> start_time_;
     std::chrono::time_point<std::chrono::system_clock> end_time_;
@@ -28,13 +28,16 @@ private:
 
 
 public:
-    uint8_t start_mins_ = 0;
-    uint8_t start_secs_ = 0;
-    uint8_t end_mins_   = 0;
-    uint8_t end_secs_   = 0;
+    uint8_t           ticker_no    = 0;
+    uint8_t           start_mins_  = 0;
+    uint8_t           start_secs_  = 0;
+    uint8_t           end_mins_    = 0;
+    uint8_t           end_secs_    = 0;
+    uint8_t           last_sent_mm = 0; // atomic_uint8_t?
+    uint8_t           last_sent_ss = 0; // atomic_uint8_t?
     KbTickerReceivers udp_tcp_receivers;
 
-    KbTickerThreadedClass() : stopThreadFlag(false) {}
+    KbTickerThreadedClass() : stopThreadFlag(true) {}
 
 
     void startThread(uint8_t start_mins, uint8_t start_secs, uint8_t end_mins, uint8_t end_secs) {
@@ -95,14 +98,14 @@ public:
         auto now = chrono::system_clock::now(); // chrono::floor<chrono::seconds>()
         chrono::hh_mm_ss hms { now - floor<chrono::days>(now)};
         std::cout << "Function in a separate thread. The system clock is currently at " << now << '\n';
-        if (udp_tcp_receivers.ticker_receivers.size() > 0) {
-            // const std::time_t t_c = std::chrono::system_clock::to_time_t(next_time_ - start_time_);
-            chrono::hh_mm_ss timenow{ chrono::floor<chrono::seconds>(next_time_ - start_time_) };
-            uint8_t mm = timenow.hours().count()*60 + timenow.minutes().count();
-            uint8_t ss = timenow.seconds().count();
-            for (const auto& obj : udp_tcp_receivers.ticker_receivers)
-                obj->sendPacketMMSS(mm, ss);
-        }
+        // const std::time_t t_c = std::chrono::system_clock::to_time_t(next_time_ - start_time_);
+        chrono::hh_mm_ss timenow{ chrono::floor<chrono::seconds>(next_time_ - start_time_) };
+        uint8_t mm = timenow.hours().count()*60 + timenow.minutes().count();
+        uint8_t ss = timenow.seconds().count();
+        last_sent_mm = mm;
+        last_sent_ss = ss;
+        for (const auto& obj : udp_tcp_receivers.ticker_receivers)
+            obj->sendPacketMMSS(mm, ss);
     }
 
 };

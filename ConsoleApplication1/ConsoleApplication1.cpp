@@ -1,33 +1,30 @@
-#include <string>
 #include <iostream>
-
-
-struct Abc {
-    uint8_t a = 'a';
-    uint8_t b = 'b';
-    uint8_t c = 'c';
-};
+#include <array>
 
 using namespace std;
 
-int main()
-{
-    char charbuf[1472];
-    Abc * pktHdr = (Abc *) charbuf;
-    pktHdr->a = 'd';
-    pktHdr->b = 'e';
-    pktHdr->c = 'f';
-    charbuf[sizeof(*pktHdr)] = 0;
 
-    string s = "just string";
-    string str = charbuf + s;
-    str.erase(0, sizeof(Abc));
+class MyClass {
+public:
+    int value;
 
+    // Constructor
+    MyClass() {}
 
-    std::cout << str;
+    void clearInstance() {}
+};
+
+int main() {
+    // Declare an array of 5 MyClass instances
+    std::array<MyClass, 5> myArray; // = { 1, 2, 3, 4, 5 };
+
+    // Access and print the values
+    for (auto& obj : myArray) {
+        obj.clearInstance();
+    }
+
+    return 0;
 }
-
-
 
 
 

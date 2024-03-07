@@ -282,7 +282,7 @@ COMMANDS - DETAILED DESCRIPTION
 ******************************************************************************
 
 
-8 : SUBSCRIBE TO EVENT - TIMER STOP  (if end time specified for "start timer" command)
+8 : SUBSCRIBE TO "END TIME" EVENT - TIMER STOP  (if end time specified for "start timer" command)
     | REQUEST   |
     | STRUCTURE |
     byte[0]                                  : {73}             Two-bytes IFF

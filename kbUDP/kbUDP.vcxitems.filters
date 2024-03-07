@@ -13,6 +13,7 @@
       <Filter>KbUDPclasses</Filter>
     </ClCompile>
     <ClCompile Include="$(MSBuildThisFileDirectory)KbTickerReceivers.cpp" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)KbTickers.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="$(MSBuildThisFileDirectory)KbUDPserverClass.h">
@@ -25,6 +26,7 @@
       <Filter>KbUDPclasses</Filter>
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)KbTickerReceivers.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)KbTickers.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="$(MSBuildThisFileDirectory)KbUDPPacketsDescription.txt">

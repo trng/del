@@ -3,6 +3,7 @@
 #include <vector>
 #include <sstream>
 #include <iostream>
+#include <array>
 
 #pragma comment(lib,"ws2_32.lib") // Winsock Library
 #pragma warning(disable:4996)     // disable warning/error for obsolete (but useful) inet_addr function
@@ -11,9 +12,6 @@
 #include "Stringer.h"
 #include "KbUdpPacketHeaders.h"
 #include "KbTickerThreadedClass.h"
-
-
-#define BUFLEN 1472
 
 
 using namespace std;
@@ -27,8 +25,7 @@ private:
     sockaddr_in             server, client = { 0 };
     bool                    exitRequested = false;
     uint16_t                port_to_bind_to_;
-    KbTickerThreadedClass   first_ticker;
-
+    array<KbTickerThreadedClass, 2> tickers;  // Only 15 ticker (timers) simultaneously (1-15).  0 - indicates that the timer was not activated
 
 public:
     /**
@@ -60,7 +57,8 @@ public:
     ~KbUDPServerClass() {
         closesocket(server_socket);
         WSACleanup();
-        first_ticker.stopThreadFunction();
+        for (auto & obj : tickers)
+            obj.stopThreadFunction(); // first_ticker.stopThreadFunction();
     }
 
     /**
@@ -70,12 +68,12 @@ public:
         while (!exitRequested) {
             printf("Waiting for data...");
             fflush(stdout);
-            char message[BUFLEN] = {};
+            char message[kbBUFLEN] = {};
 
             // try to receive some data, this is a blocking call
             int message_len;
             int slen = sizeof(sockaddr_in);
-            if ((message_len = recvfrom(server_socket, message, BUFLEN, 0, (sockaddr*)&client, &slen)) == SOCKET_ERROR) {
+            if ((message_len = recvfrom(server_socket, message, kbBUFLEN, 0, (sockaddr*)&client, &slen)) == SOCKET_ERROR) {
                 printf("recvfrom() failed with error code: %d", WSAGetLastError());
                 exit(0);
             }
@@ -89,8 +87,8 @@ public:
 
             //cout << "Enter response (exit to stop server process): ";
             //cin.getline(message, BUFLEN);
-            char message_reponse[BUFLEN] = {};
-            snprintf(message_reponse, BUFLEN - 1, "Your message: %s", message);
+            char message_reponse[kbBUFLEN] = {};
+            snprintf(message_reponse, kbBUFLEN - 1, "Your message: %s", message);
 
             // reply to the client with the same data
             if (sendto(server_socket, message_reponse, int(strlen(message_reponse)), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR) {
@@ -114,12 +112,12 @@ public:
         while (!exitRequested) {
             printf("Waiting for data...");
             fflush(stdout);
-            char message[BUFLEN] = {};
+            char message[kbBUFLEN] = {};
 
             // try to receive some data, this is a blocking call
             int message_len;
             int slen = sizeof(sockaddr_in);
-            if ((message_len = recvfrom(server_socket, message, BUFLEN, 0, (sockaddr*)&client, &slen)) == SOCKET_ERROR) {
+            if ((message_len = recvfrom(server_socket, message, kbBUFLEN, 0, (sockaddr*)&client, &slen)) == SOCKET_ERROR) {
                 printf("recvfrom() failed with error code: %d", WSAGetLastError());
                 exit(0);
             }
@@ -140,8 +138,8 @@ public:
 
             //cout << "Enter response (exit to stop server process): ";
             //cin.getline(message, BUFLEN);
-            char message_reponse[BUFLEN] = {};
-            snprintf(message_reponse, BUFLEN - 1, "Your message: %s", s.data());
+            char message_reponse[kbBUFLEN] = {};
+            snprintf(message_reponse, kbBUFLEN - 1, "Your message: %s", s.data());
 
             // reply to the client with the same data
             if (sendto(server_socket, message_reponse, int(strlen(message_reponse)), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR) {
@@ -159,15 +157,15 @@ public:
 
 
     void startUdpListenerForVmixTiming() {
-        while (!exitRequested) {
+        while (true) {
             printf("Waiting for data...\n");
             fflush(stdout);
-            char message[BUFLEN] = {};
+            char message[kbBUFLEN] = {};
 
             // try to receive some data, this is a blocking call
             int message_len;
             int slen = sizeof(sockaddr_in);
-            if ((message_len = recvfrom(server_socket, message, BUFLEN, 0, (sockaddr*)&client, &slen)) == SOCKET_ERROR) {
+            if ((message_len = recvfrom(server_socket, message, kbBUFLEN, 0, (sockaddr*)&client, &slen)) == SOCKET_ERROR) {
                 printf("\nrecvfrom() failed with error code: %d", WSAGetLastError());
                 return;
             }
@@ -175,36 +173,31 @@ public:
             // print details of the client/peer and the data received
             printf("Received packet from %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
             // if (message_len>2 && message[0]==73 && message[1]==73) {
-            if (message_len > 2 && *(uint16_t*)message == 0x4949 && message[2] > 0 && message[2] < 8) { // only 7 commands availible for now
+            if (message_len > 2 && *(uint16_t*)message == 0x4949 && message[2] > 0 && message[2] < 9) { // only 7 commands availible for now
                 switch (message[2]) {
                     case 0: zeroHandler(message, message_len);  break;
-                    case 1: startTimer(message, message_len);   break;
+                    case 1: startTicker(message, message_len);   break;
                     case 2: break;
                     case 3: break;
                     case 4: break;
                     case 5: addHttpReceiver(message, message_len);  break;
-                    case 6: getTimerHandler(message, message_len);  break;
+                    case 6: getTickerCurrentState(message, message_len);  break;
                     case 7: addUdpReceiver(message, message_len); break;
+                    case 8: subscribeToEndTimeEvent(message, message_len); break;
                     default: break;
                 }
             }
             else {
                 // Wrong message format
-                cout <<  kb_response_codes_str.at(wrong_message_format) << "\n";
-                
+                cout << kb_response_codes_str.at(wrong_message_format) << "\n";
+
                 // reply to the client with error message
                 GeneralResponseUdpPacketHeader err_pkt_hdr = { .response_code = wrong_message_format };
-                if (sendto(server_socket, (const char *) & err_pkt_hdr, sizeof(err_pkt_hdr), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR) {
+                if (sendto(server_socket, (const char*)&err_pkt_hdr, sizeof(err_pkt_hdr), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR) {
                     printf("sendto() failed with error code: %d", WSAGetLastError());
                     // exit(EXIT_FAILURE);
                 }
             }
-
-            //if (strcmp(message, "exit") == 0) {
-            //    std::cout << "Exiting server...\n";
-            //    exitRequested = true;
-            //    break;
-            // }
         }
     }
 
@@ -212,39 +205,33 @@ public:
     void  zeroHandler(const char* message, int message_len) {};
 
 
-    void startTimer(const char* message, int message_len) {
-        cout << "\n\nstartTimer\n\n";
+    void startTicker(const char* message, int message_len) {
+        cout << "\n\nStart Ticker\n\n";
         // First three bytes already checked (73,73,1)
-        char resopnse_status = 1;
-        // parse starttimer header
+        GeneralResponseUdpPacketHeader resopnse_status;
+        resopnse_status.response_code = everything_bad;
+        // parse startTicker header
         StartTimerRequestUdpPacketHeader * pktHdr;
         pktHdr = (StartTimerRequestUdpPacketHeader*) message;
         if (pktHdr->timer_no > 0 && pktHdr->start_seconds < 60) {
-
-            resopnse_status = 0;
+            resopnse_status.response_code = everything_good;
             printf("\ncommand %d   timer_no %d     start_mins %d     start_secs %d     end_mins %d     end_secs %d\n", pktHdr->command, pktHdr->timer_no, pktHdr->start_minutes, pktHdr->start_seconds, pktHdr->end_minutes, pktHdr->end_seconds);
-
-            //KbTickerClass kbtc;
-            // auto t = kbtc.start();
-            if (first_ticker.isThreadActive()) {
-                first_ticker.stopThreadFunction();
-            }
-            first_ticker.startThread(pktHdr->start_minutes, pktHdr->start_seconds, pktHdr->end_minutes, pktHdr->end_seconds);
+            tickers[pktHdr->timer_no].ticker_no = pktHdr->timer_no;
+            if (tickers[pktHdr->timer_no].isThreadActive())
+                tickers[pktHdr->timer_no].stopThreadFunction();
+            tickers[pktHdr->timer_no].startThread(pktHdr->start_minutes, pktHdr->start_seconds, pktHdr->end_minutes, pktHdr->end_seconds);
         }
         else {
             // everyting is bad
         }
 
-
-        // reply to the client whith one-byte response status
-        if (sendto(server_socket, &resopnse_status, sizeof(resopnse_status), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR) {
+        // reply to the client whith response status
+        if (sendto(server_socket, (char *) &resopnse_status, sizeof(resopnse_status), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR) 
             printf("sendto() failed with error code: %d", WSAGetLastError());
-            // exit(EXIT_FAILURE);
-        }
     }
 
 
-    void getTimerHandler(const char* message, int message_len) {
+    void getTickerCurrentState(const char* message, int message_len) {
         cout << "\n\ngetTimer handler\n\n";
         // First three bytes already checked (73,73,6)
 
@@ -258,7 +245,11 @@ public:
         else {
             printf("\ncommand %d   timer_no %d     \n", request_pkt_hdr->command, request_pkt_hdr->timer_no);
             // reply to the client with time
-            response_pkt_hdr = { .timer_no = 1, .minutes = 34, .seconds = 56 };
+            response_pkt_hdr = { 
+                .timer_no = request_pkt_hdr->timer_no, 
+                .minutes = tickers[request_pkt_hdr->timer_no].last_sent_mm, 
+                .seconds = tickers[request_pkt_hdr->timer_no].last_sent_ss 
+            };
         }
         if (sendto(server_socket, (char*)&response_pkt_hdr, sizeof(response_pkt_hdr), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR) {
             printf("sendto() failed with error code: %d", WSAGetLastError());
@@ -284,11 +275,15 @@ public:
         else {
             printf("\ncommand %d   timer_no %d     \n", pktHdr->command, pktHdr->timer_no);
             //first_ticker.socketInit(pktHdr->ipv4_addr, pktHdr->udp_port);
-            first_ticker.udp_tcp_receivers.addUdpReceiver(pktHdr->ipv4_addr, pktHdr->udp_port);
+            tickers[pktHdr->timer_no].udp_tcp_receivers.addUdpReceiver(pktHdr->ipv4_addr, pktHdr->udp_port);
         }
         
         if (sendto(server_socket, (char*)&response_pkt_hdr, sizeof(response_pkt_hdr), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR)
             printf("sendto() failed with error code: %d", WSAGetLastError());
+    }
+
+    void subscribeToEndTimeEvent(const char* message, const int message_len) {
+        cout << "\n\nSubscribe to end time event\n\n";
     }
 
     void addHttpReceiver(const char* message, const int message_len) {
@@ -311,7 +306,7 @@ public:
             // message[message_len] = 0;
             //string s = message;
             //s.erase(0, sizeof(AddTimerHttpReceiverRequestUdpPacketHeader));
-            first_ticker.udp_tcp_receivers.addHttpReceiver(pktHdr->fixed_part.ipv4_addr, pktHdr->fixed_part.tcp_port, pktHdr->path);
+            tickers[pktHdr->fixed_part.timer_no].udp_tcp_receivers.addHttpReceiver(pktHdr->fixed_part.ipv4_addr, pktHdr->fixed_part.tcp_port, pktHdr->path);
         }
 
         if (sendto(server_socket, (char*)&response_pkt_hdr, sizeof(response_pkt_hdr), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR)
