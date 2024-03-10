@@ -7,7 +7,7 @@
 #include <string>
 #include <windows.h>
 #include "KbUDPserverClass.h"
-// #include "KbTickerClass.h"
+#include "KickBoxerTickerForVmix.h"
 
 
 using namespace std;
@@ -19,8 +19,13 @@ uint16_t udp_port_to_bind_to = 8888;
 
 int main(int argc, char* argv[])
 {
-    // Console window set-up (title, disable mouse select, disable manual scroll - otherwise code execution in the console is suspended)
+    // Console window set-up
+    // (title, disaale cursor, disable mouse select, disable manual scroll - otherwise code execution in the console is suspended)
     {
+        // Set window width
+        system("mode con: cols=140 lines=25");
+
+        // Window title
         system("title KickBoxer3000 ticker for vMix.     Build date: "  __DATE__ ".     Build time: " __TIME__ ".");
 
         // disable mouse selection inside the window (due to code execution will be suspended in this console during mouse selection)
@@ -31,16 +36,22 @@ int main(int argc, char* argv[])
         // disable window resize for disabling scroll (manual scroll suspends code execution in this console)
         HWND consoleWindow = GetConsoleWindow();
         SetWindowLong(consoleWindow, GWL_STYLE, GetWindowLong(consoleWindow, GWL_STYLE) & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX);
+
+        // disable cursor escape sequence
+        cout << "\033[?25l";
     }
 
 
     // command line args processing
     {
-        std::cout << "KickBoxer3000 ticker for vMix (udp listener).\n\n";
+        std::cout << "KickBoxer3000 ticker for vMix (udp listener). Version " << PROGRAM_VERSION << ".\n\n";
         if (argc != 2) {
-            cout << "Usage                     :  kbUDPclient port (to bind to)\n";
-            cout << "Example                   :  kbUDPclient " << udp_port_to_bind_to << "\n";
-            cout << "Without params (defaults) :  kbUDPclient " << udp_port_to_bind_to << "\n";
+            cout << "Usage:\n";
+            cout << "    kbUDPclient port(to bind to)\n\n";
+            cout << "Example:\n";
+            cout << "    kbUDPclient " << udp_port_to_bind_to << "\n\n";
+            cout << "Default port:\n";
+            cout << "    " << udp_port_to_bind_to << "\n\n";
         }
         else {
             uint16_t argv_port;
@@ -49,10 +60,11 @@ int main(int argc, char* argv[])
                 udp_port_to_bind_to = argv_port;
             }
             catch (...) {
-                cout << "Wrong port number. Exiting...\n"; return 0;
+                cout << "Wrong port number. Exiting...\n"; exit(1);
             }
         }
-        cout << "UDP port to bind to   :   " << udp_port_to_bind_to << "\n\n";
+        cout << "UDP port for binding attempt:\n";
+        cout << "    " << udp_port_to_bind_to << "\n\n";
     }
 
 

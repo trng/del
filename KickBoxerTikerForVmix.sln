@@ -108,6 +108,5 @@ Global
 		kbUDP\kbUDP.vcxitems*{54e0e213-312e-48bc-b8d9-87b05286d981}*SharedItemsImports = 4
 		Helpers\Helpers.vcxitems*{7edf48fb-f55a-44f8-abcc-a07c6a1a02ca}*SharedItemsImports = 4
 		kbUDP\kbUDP.vcxitems*{7edf48fb-f55a-44f8-abcc-a07c6a1a02ca}*SharedItemsImports = 4
-		kbUDP\kbUDP.vcxitems*{b1af5454-ed80-4d6f-8f03-e15da5767459}*SharedItemsImports = 4
 	EndGlobalSection
 EndGlobal

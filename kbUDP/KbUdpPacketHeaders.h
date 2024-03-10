@@ -59,6 +59,27 @@ struct StartTimerRequestUdpPacketHeader
 
 
 
+#define PauseTickerRequestUdpPacketHeaderSignificantFieldsCount 2
+struct PauseTickerRequestUdpPacketHeader
+{
+    uint8_t IFF1 = 73;
+    uint8_t IFF2 = 73;
+    uint8_t command = 2;
+    uint8_t timer_no = 0;
+};
+
+
+
+#define ResumeTickerRequestUdpPacketHeaderSignificantFieldsCount 2
+struct ResumeTickerRequestUdpPacketHeader
+{
+    uint8_t IFF1 = 73;
+    uint8_t IFF2 = 73;
+    uint8_t command = 3;
+    uint8_t timer_no = 0;
+};
+
+
 
 #define GetTimerRequestUdpPacketHeaderSignificantFieldsCount 2
 struct GetTimerRequestUdpPacketHeader

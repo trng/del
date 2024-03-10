@@ -71,7 +71,7 @@ AVAILIABLE COMMANDS (third byte)
     5 : Attach url to per-second timer  ("assign" tcp-receiver(s) for this timer. Vmix url should be supplied)
     6 : Get current timer status        (one-time udp request)
     7 : Subscribe to timer status       (get timer status every second to supplied udp port)
-
+    8 : SUBSCRIBE TO "END TIME" EVENT   (if end time specified for "start timer" command)
 
 
 
@@ -86,7 +86,7 @@ AVAILIABLE RESPONSE CODES (third byte)
     3 : RESPONSE CODE                   (reserved)
     .                                   ..
     .                                   ..
-    15 : RESPONSE CODE                   (reserved)
+    15 : RESPONSE CODE                  (reserved)
 
 
 
@@ -103,14 +103,14 @@ COMMANDS - DETAILED DESCRIPTION
 
 ******************************************************************************
 
-1 : START PER-SECOND TIMER
+1 : START PER-SECOND TICKER
 
     | REQUEST   |
     | STRUCTURE |
     byte[0]                                  : {73}       Two-bytes IFF
     byte[1]                                  : {73}
     byte[2]                                  : {1}                                    (unsiged char)
-    byte[3]                                  : {1-255}    timer number                (unsiged char)
+    byte[3]                                  : {1-255}    ticker number               (unsiged char)
     byte[4]                                  : {0-255}    start time - minutes        (unsiged char)
     byte[5]                                  : {0-60 }    start time - seconds        (unsiged char)
     byte[6]                                  : {0-255}    end time - minutes          (unsiged char)
@@ -127,14 +127,14 @@ COMMANDS - DETAILED DESCRIPTION
 
 ******************************************************************************
 
-2 : PAUSE PER-SECOND TIMER
+2 : PAUSE PER-SECOND TICKER
 
     | REQUEST   |
     | STRUCTURE |
     byte[0]                                  : {73}       Two-bytes IFF
     byte[1]                                  : {73}
     byte[2]                                  : {2}        command                  (unsiged char)
-    byte[3]                                  : {1-255}    timer number             (unsiged char)
+    byte[3]                                  : {1-255}    ticker number            (unsiged char)
 
     | RESPONSE  |
     | STRUCTURE |
@@ -155,7 +155,7 @@ COMMANDS - DETAILED DESCRIPTION
     byte[0]                                  : {73}       Two-bytes IFF
     byte[1]                                  : {73}
     byte[2]                                  : {3}        command                  (unsiged char)
-    byte[3]                                  : {1-255}    timer number             (unsiged char)
+    byte[3]                                  : {1-255}    ticker number            (unsiged char)
 
     | RESPONSE  |
     | STRUCTURE |
@@ -177,7 +177,7 @@ COMMANDS - DETAILED DESCRIPTION
     byte[0]                                  : {73}       Two-bytes IFF
     byte[1]                                  : {73}
     byte[2]                                  : {4}        command               (unsiged char)
-    byte[3]                                  : {1-255}    timer number          (unsiged char)
+    byte[3]                                  : {1-255}    ticker number         (unsiged char)
 
     | RESPONSE  |
     | STRUCTURE |
@@ -199,7 +199,7 @@ COMMANDS - DETAILED DESCRIPTION
     byte[0]                                  : {73}            Two-bytes IFF
     byte[1]                                  : {73}
     byte[2]                                  : {5}             command                  (unsiged char)
-    byte[3]                                  : {1-255}         timer number             (unsiged char)
+    byte[3]                                  : {1-255}         ticker number            (unsiged char)
     byte[4..7]                               : {four octets}   ipv4 adress              (byte-array)
     byte[8..9]                               : {0-65535}       tcp port number          (unsigned int16, little-endian)
     byte[10 .. up-to-null-character]         : {bytearray}     path (url without "scheme://address:port" to send command to vmix (null-terminated byte-array)
@@ -227,7 +227,7 @@ COMMANDS - DETAILED DESCRIPTION
     byte[0]                                  : {73}        Two-bytes IFF
     byte[1]                                  : {73}
     byte[2]                                  : {6}         command                  (unsiged char)
-    byte[3]                                  : {1..255}    timer number             (unsiged char)
+    byte[3]                                  : {1..255}    ticker number            (unsiged char)
 
     | RESPONSE  |
     | STRUCTURE |
@@ -236,7 +236,7 @@ COMMANDS - DETAILED DESCRIPTION
     byte[2]                                  : {1..2}      response code            (unsiged char)
                                                            1 - everything is bad (1 means wrong number of command args in most cases)
                                                            2 - response has payload (timer status)
-    byte[3]                                  : {1..255}    timer number             (unsiged char)
+    byte[3]                                  : {1..255}    ticker number            (unsiged char)
     byte[4]                                  : {0..255}    starting time - minutes  (unsiged char)
     byte[5]                                  : {0..59 }    starting time - seconds  (unsiged char)
 
@@ -255,7 +255,7 @@ COMMANDS - DETAILED DESCRIPTION
     byte[0]                                  : {73}             Two-bytes IFF
     byte[1]                                  : {73}
     byte[2]                                  : {7}               command            (unsiged char)
-    byte[3]                                  : {0-255}           timer number       (unsiged char)
+    byte[3]                                  : {0-255}           ticker number      (unsiged char)
     byte[4..7]                               : {four octets}     ipv4 adress        (byte-array)
     byte[8..9]                               : {0-65535}         udp port number    (unsigned int16, little-endian)
 
@@ -274,9 +274,9 @@ COMMANDS - DETAILED DESCRIPTION
     byte[0]                                  : {37}        Two-bytes IFF
     byte[1]                                  : {37}
     byte[2]                                  : {2}         packet has payload       (unsiged char)
-    byte[3]                                  : {1..255}    timer number             (unsiged char)
-    byte[4]                                  : {0..255}    timer status - minutes   (unsiged char)
-    byte[5]                                  : {0..59 }    timer status - seconds   (unsiged char)
+    byte[3]                                  : {1..255}    ticker number            (unsiged char)
+    byte[4]                                  : {0..255}    ticker status - minutes  (unsiged char)
+    byte[5]                                  : {0..59 }    ticker status - seconds  (unsiged char)
 
 
 ******************************************************************************
@@ -288,7 +288,7 @@ COMMANDS - DETAILED DESCRIPTION
     byte[0]                                  : {73}             Two-bytes IFF
     byte[1]                                  : {73}
     byte[2]                                  : {8}               command            (unsiged char)
-    byte[3]                                  : {0-255}           timer number       (unsiged char)
+    byte[3]                                  : {0-255}           ticker number      (unsiged char)
     byte[4..7]                               : {four octets}     ipv4 adress        (byte-array)
     byte[8..9]                               : {0-65535}         udp port number    (unsigned int16, little-endian)
 
@@ -307,6 +307,6 @@ COMMANDS - DETAILED DESCRIPTION
     byte[0]                                  : {37}        Two-bytes IFF
     byte[1]                                  : {37}
     byte[2]                                  : {2}         packet has payload       (unsiged char)
-    byte[3]                                  : {1..255}    timer number             (unsiged char)
-    byte[4]                                  : {0..255}    timer status - minutes   (unsiged char)
-    byte[5]                                  : {0..59 }    timer status - seconds   (unsiged char)
+    byte[3]                                  : {1..255}    ticker number            (unsiged char)
+    byte[4]                                  : {0..255}    ticker status - minutes  (unsiged char)
+    byte[5]                                  : {0..59 }    ticker status - seconds  (unsiged char)

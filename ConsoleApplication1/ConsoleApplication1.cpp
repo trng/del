@@ -1,35 +1,15 @@
 #include <iostream>
-#include <array>
 
 using namespace std;
 
+int main()
+{
+    int pos = 0;
 
-class MyClass {
-public:
-    int value;
+    cout << "Hello World!";
 
-    // Constructor
-    MyClass() {}
-
-    void clearInstance() {}
-};
-
-int main() {
-    // Declare an array of 5 MyClass instances
-    std::array<MyClass, 5> myArray; // = { 1, 2, 3, 4, 5 };
-
-    // Access and print the values
-    for (auto& obj : myArray) {
-        obj.clearInstance();
-    }
-
-    return 0;
+    cout << "\033[3G" << "++";
 }
-
-
-
-
-
 
 
 

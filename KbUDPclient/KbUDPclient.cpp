@@ -87,13 +87,13 @@ public:
                 s = Stringer::singleWhitespaces(Stringer::ltrimRtrim(s)); // ltrim + rtrim and singleWhitespaces inside
                 switch (message[0]) {
                     case '0': zeroHandler(s); break;
-                    case '1': startTimer(s);  break;
-                    case '2': break;
-                    case '3': break;
-                    case '4': break;
-                    case '5': addTimerHttpReceiver(s);  break;
-                    case '6': getTimer(s);  break;
-                    case '7': subscribeToTimer(s);  break;
+                    case '1': startTicker(s);  break;
+                    case '2': pauseTicker(s); break;
+                    case '3': zeroHandler(s); break;
+                    case '4': zeroHandler(s); break;
+                    case '5': addTickerHttpReceiver(s);  break;
+                    case '6': getTickerCurrentStatus(s);  break;
+                    case '7': addTickerUdpReceiver(s);  break;
                     default : zeroHandler(s); break;
                 }
             }
@@ -110,7 +110,7 @@ public:
     }
 
 
-    void startTimer(std::string s) {
+    void startTicker(std::string s) {
         cout << "Start timer request\n";
         StartTimerRequestUdpPacketHeader request_pkt_hdr;
         std::vector<std::string> tokens = splitToVector(s);
@@ -125,20 +125,47 @@ public:
             request_pkt_hdr.end_minutes   = strToChar(tokens[4]);
             request_pkt_hdr.end_seconds   = strToChar(tokens[5]);
             UDPmessageStruct server_resnonse = sendUDPmessage((char*)&request_pkt_hdr, sizeof(request_pkt_hdr));
-            if (server_resnonse.message_len > 0)
-                printf("\nServer response for getTimer() request: %.*s\n\n\n", server_resnonse.message_len, server_resnonse.message);
-            else
+            if (server_resnonse.message_len > 0) 
+            {
+                string s = Stringer::charBufToCharCodes(server_resnonse.message, server_resnonse.message_len, false);
+                printf("\nServer response for startTimer() request: %s\n\n\n", s.data());
+            } else 
+            {
                 cout << "\nServer responded with zero length message\n\n\n";
+            }
         }        
         // message = (char*)&startTimerPacketHeader;  // [kbBUFLEN]
         // char message[kbBUFLEN];
         // memcpy_s(message, sizeof(message), &startTimerUdpPacketHeader, sizeof(startTimerUdpPacketHeader));
     }
 
-    void getTimer(std::string s) {
-        cout << "Get timer requset\n";
-        GetTimerRequestUdpPacketHeader request_pkt_hdr;
+    void pauseTicker(string s) {
+        cout << "Pause ticker request\n";
+        PauseTickerRequestUdpPacketHeader request_pkt_hdr;
         std::vector<std::string> tokens = splitToVector(s);
+        if (tokens.size() != PauseTickerRequestUdpPacketHeaderSignificantFieldsCount) {
+            printf("Wrong number of arguments for pauseTicker. Expected: %d. Founded: %zu.\n", PauseTickerRequestUdpPacketHeaderSignificantFieldsCount, tokens.size());
+        }
+        else {
+            request_pkt_hdr.command = strToChar(tokens[0]);
+            request_pkt_hdr.timer_no = strToChar(tokens[1]);
+        }
+        UDPmessageStruct server_response_buf;
+        server_response_buf = sendUDPmessage((char*)&request_pkt_hdr, sizeof(request_pkt_hdr));
+        if (server_response_buf.message_len > 0) {
+            string s = Stringer::charBufToCharCodes(server_response_buf.message, server_response_buf.message_len, false);
+            printf("\nServer response for pauseTicker() request: %s\n\n\n", s.data());
+        }
+        else {
+            cout << "\nServer responded with zero length message\n\n\n";
+        }
+    }
+
+
+    void getTickerCurrentStatus(string s) {
+        cout << "Get Ticker Current Status\n";
+        GetTimerRequestUdpPacketHeader request_pkt_hdr;
+        vector<string> tokens = splitToVector(s);
         if (tokens.size() != GetTimerRequestUdpPacketHeaderSignificantFieldsCount) {
             printf("Wrong number of arguments for getTimer. Expected: %d. Founded: %zu.\n", GetTimerRequestUdpPacketHeaderSignificantFieldsCount, tokens.size());
         }
@@ -149,8 +176,8 @@ public:
             // no variable lenght params in this request. So, request header is a full request message
             server_response_buf = sendUDPmessage((char*)&request_pkt_hdr, sizeof(request_pkt_hdr));
             if (server_response_buf.message_len > 0) {
-                string s = Stringer::charBufToCharCodes(server_response_buf.message, server_response_buf.message_len);
-                printf("\nServer response for getTimer() request: %s\n\n\n", s.data());
+                string s = Stringer::charBufToCharCodes(server_response_buf.message, server_response_buf.message_len, false);
+                printf("\nServer response for getTickerCurrentStatus() request: %s\n\n\n", s.data());
             } else {
                 cout << "\nServer responded with zero length message\n\n\n";
             }
@@ -158,10 +185,10 @@ public:
     }
 
 
-    void subscribeToTimer(std::string s) {
+    void addTickerUdpReceiver(string s) {
         cout << "Subscribe to timer request\n";
         AddTimerUdpReceiverRequestUdpPacketHeader request_pkt_hdr;
-        std::vector<std::string> tokens = splitToVector(s);
+        vector<std::string> tokens = splitToVector(s);
         if ( tokens.size() != AddTimerUdpReceiverRequestUdpPacketHeaderSignificantFieldsCount + 3 ) {
             printf("Wrong number of arguments for subscribe to timer . Expected: %d. Founded: %zu.\n", AddTimerUdpReceiverRequestUdpPacketHeaderSignificantFieldsCount, tokens.size());
         } else {
@@ -183,7 +210,7 @@ public:
         }
     }
 
-    void addTimerHttpReceiver(std::string s) {
+    void addTickerHttpReceiver(std::string s) {
         cout << "Add timer http receiver request\n";
         AddTimerHttpReceiverRequestUdpPacketHeader request_pkt_hdr;
         std::vector<std::string> tokens = splitToVector(s);

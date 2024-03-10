@@ -4,6 +4,7 @@
 #include <sstream>
 #include <iostream>
 #include <array>
+#include <ranges>
 
 #pragma comment(lib,"ws2_32.lib") // Winsock Library
 #pragma warning(disable:4996)     // disable warning/error for obsolete (but useful) inet_addr function
@@ -19,15 +20,21 @@ using namespace std;
 
 class KbUDPServerClass {
 
+public:
+    bool                    do_not_show_current_time = true;
+
 
 private:
     SOCKET                  server_socket;
     sockaddr_in             server, client = { 0 };
     bool                    exitRequested = false;
     uint16_t                port_to_bind_to_;
-    array<KbTickerThreadedClass, 2> tickers;  // Only 15 ticker (timers) simultaneously (1-15).  0 - indicates that the timer was not activated
+                                     // Only 15 ticker (timers) simultaneously (1-15).  0 - indicates that the timer was not activated
+    array<KbTickerThreadedClass, 16> tickers = { &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time };
+
 
 public:
+
     /**
     * @brief KbUDPServerClass Constructor.
     * @param port_to_bind_to Port to bind to. No port availability checks.
@@ -158,7 +165,23 @@ public:
 
     void startUdpListenerForVmixTiming() {
         while (true) {
-            printf("Waiting for data...\n");
+            do_not_show_current_time = true;
+            printf("\n\n\nWaiting for data...\n\n\n");
+            cout << "\033[45m" << std::setw(10 + tickers.size() * 8) << std::setfill(' ') << ' ';
+            for ( size_t i = 1; i < tickers.size(); i++ ) // for (auto& ticker : tickers)
+                if (tickers[i].ticker_no > 0) cout << "\rTicker_no " << "\033[" << 9 + i * 8 << "G" << to_string(tickers[i].ticker_no);
+            cout << "\033[49m\n";
+            for ( size_t i = 1; i < tickers.size(); i++ )
+                if (tickers[i].ticker_no > 0) cout << "\rStart time" << "\033[" << 9 + i * 8 << "G" << to_string(tickers[i].start_mins_) << ':' << to_string(tickers[i].start_secs_) << "   ";
+            cout << '\n';
+            for ( size_t i = 1; i < tickers.size(); i++ )
+                if (tickers[i].ticker_no > 0) cout << "\rEnd time  " << "\033[" << 9 + i * 8 << "G" << to_string(tickers[i].end_mins_) << ':' << to_string(tickers[i].end_secs_) << "   ";
+            cout << '\n';
+            for ( size_t i = 1; i < tickers.size(); i++ )
+                if (tickers[i].ticker_no > 0) cout << "\rUDP + HTTP" << "\033[" << 9 + i * 8 << "G" << to_string(tickers[i].udp_tcp_receivers.ticker_receivers.size()) << "   ";
+            cout << '\n';
+            do_not_show_current_time = false;
+
             fflush(stdout);
             char message[kbBUFLEN] = {};
 
@@ -166,23 +189,24 @@ public:
             int message_len;
             int slen = sizeof(sockaddr_in);
             if ((message_len = recvfrom(server_socket, message, kbBUFLEN, 0, (sockaddr*)&client, &slen)) == SOCKET_ERROR) {
-                printf("\nrecvfrom() failed with error code: %d", WSAGetLastError());
+                printf("\n\n\nrecvfrom() failed with error code: %d", WSAGetLastError());
                 return;
             }
 
             // print details of the client/peer and the data received
-            printf("Received packet from %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+            printf("\n\n\nReceived packet from %s:%d\n", inet_ntoa(client.sin_addr), ntohs(client.sin_port));
+
             // if (message_len>2 && message[0]==73 && message[1]==73) {
             if (message_len > 2 && *(uint16_t*)message == 0x4949 && message[2] > 0 && message[2] < 9) { // only 7 commands availible for now
                 switch (message[2]) {
-                    case 0: zeroHandler(message, message_len);  break;
-                    case 1: startTicker(message, message_len);   break;
-                    case 2: break;
-                    case 3: break;
+                    case 0: zeroHandler(message, message_len);             break;
+                    case 1: startTicker(message, message_len);             break;
+                    case 2: pauseTicker(message, message_len);             break;
+                    case 3: resumeTicker(message, message_len);            break;
                     case 4: break;
-                    case 5: addHttpReceiver(message, message_len);  break;
-                    case 6: getTickerCurrentState(message, message_len);  break;
-                    case 7: addUdpReceiver(message, message_len); break;
+                    case 5: addHttpReceiver(message, message_len);         break;
+                    case 6: getTickerCurrentState(message, message_len);   break;
+                    case 7: addUdpReceiver(message, message_len);          break;
                     case 8: subscribeToEndTimeEvent(message, message_len); break;
                     default: break;
                 }
@@ -231,14 +255,36 @@ public:
     }
 
 
+    void pauseTicker(const char* message, int message_len) {
+        // First three bytes already checked (73,73,2)
+        cout << "\n\Pause Ticker\n\n";
+        
+        // parse PauseTimer header
+        PauseTickerRequestUdpPacketHeader* request_pkt_hdr = (PauseTickerRequestUdpPacketHeader*)message;
+        if (request_pkt_hdr->timer_no > 0) {
+            if (tickers[request_pkt_hdr->timer_no].isThreadActive())
+                tickers[request_pkt_hdr->timer_no].stopThreadFunction();
+
+            GeneralResponseUdpPacketHeader response_pkt_hdr;
+            if (sendto(server_socket, (char*)&response_pkt_hdr, sizeof(response_pkt_hdr), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR)
+                printf("sendto() failed with error code: %d", WSAGetLastError());
+        }
+    };
+
+
+    void resumeTicker(const char* message, int message_len) {
+    
+    };
+
+
     void getTickerCurrentState(const char* message, int message_len) {
-        cout << "\n\ngetTimer handler\n\n";
+        cout << "\n\nGet ticker current state\n\n";
         // First three bytes already checked (73,73,6)
 
         // parse starttimer header
         GetTimerRequestUdpPacketHeader  * request_pkt_hdr  = (GetTimerRequestUdpPacketHeader*)message;
         GetTimerResponseUdpPacketHeader response_pkt_hdr;
-        if (request_pkt_hdr->timer_no = 0) {
+        if (request_pkt_hdr->timer_no == 0) {
             cout << "Timer number cannot be 0\n";
             response_pkt_hdr = { .response_code = 1, .timer_no = 0, .minutes = 0, .seconds = 0 };
         }

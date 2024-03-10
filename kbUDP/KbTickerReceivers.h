@@ -35,7 +35,7 @@ public:
         return memcmp(ipaddr, ipaddr_, sizeof(ipaddr_)) == 0 && PORT == PORT_ && path.compare(path_) == 0;
     }
 
-    virtual void sendPacketMMSS(uint8_t mm, uint8_t ss) = 0;
+    virtual void sendPacketMMSS(uint8_t mm, uint8_t ss, uint8_t timer_no = 0) = 0;
 
     virtual ~KbTickerReceiverBaseType() = default;
 };
@@ -71,8 +71,8 @@ public:
         }
     }
 
-    void sendPacketMMSS(uint8_t mm, uint8_t ss) override {
-        udp_pkt_buf = { .minutes = mm, .seconds = ss };
+    void sendPacketMMSS(uint8_t mm, uint8_t ss, uint8_t timer_no = 0) override {
+        udp_pkt_buf = { .timer_no = timer_no, .minutes = mm, .seconds = ss };
         if (sendto(client_socket, (char*)&udp_pkt_buf, sizeof(udp_pkt_buf), 0, (sockaddr*)&server, sizeof(sockaddr_in)) == SOCKET_ERROR) {
             printf("sendto() failed with error code: %d", WSAGetLastError());
             return; //  exit(EXIT_FAILURE);
@@ -113,7 +113,7 @@ public:
         SockAddr.sin_addr.S_un.S_addr = inet_addr("127.0.0.1"); //
     }
 
-    void sendPacketMMSS(uint8_t mm, uint8_t ss) override { // const
+    void sendPacketMMSS(uint8_t mm, uint8_t ss, uint8_t timer_no = 0) override { // const
         string timenow = std::format("{:#02}%3A{:#02}", mm, ss);
         Socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         if (connect(Socket, (SOCKADDR*)(&SockAddr), sizeof(SockAddr)) != 0) {
@@ -157,6 +157,7 @@ public:
      *
      */
     vector<std::unique_ptr<KbTickerReceiverBaseType>> ticker_receivers;
+
 
     /**
      * Input parameters will be checked to see if a receiver with exactly the same parameters exists (ipaddr, port).

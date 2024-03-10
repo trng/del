@@ -19,7 +19,7 @@ class KbTickerThreadedClass {
 
 
 private:
-    std::thread separate_thread_for_timer;
+    std::thread myThread;
     bool stopThreadFlag = true;
     SendTimerUdpPacketHeader udp_pkt_buf;
     std::chrono::time_point<std::chrono::system_clock> start_time_;
@@ -46,14 +46,14 @@ public:
         end_mins_   = end_mins;
         end_secs_   = end_secs;
         stopThreadFlag = false;  // Reset the flag
-        separate_thread_for_timer = std::thread(&KbTickerThreadedClass::threadFunction, this);
+        myThread = std::thread(&KbTickerThreadedClass::threadFunction, this);
     }
 
     void stopThreadFunction() {
         stopThreadFlag = true;
 
-        if (separate_thread_for_timer.joinable()) {
-            separate_thread_for_timer.join();
+        if (myThread.joinable()) {
+            myThread.join();
         }
     }
 
@@ -91,7 +91,7 @@ public:
     }
 
     bool isThreadActive() const {
-        return separate_thread_for_timer.joinable();
+        return myThread.joinable();
     }
 
     void per_second_updates() {
