@@ -86,15 +86,16 @@ public:
                 s = message; // char[] -> String
                 s = Stringer::singleWhitespaces(Stringer::ltrimRtrim(s)); // ltrim + rtrim and singleWhitespaces inside
                 switch (message[0]) {
-                    case '0': zeroHandler(s); break;
+                    case '0': zeroHandler(s);  break;
                     case '1': startTicker(s);  break;
-                    case '2': pauseTicker(s); break;
-                    case '3': zeroHandler(s); break;
-                    case '4': zeroHandler(s); break;
+                    case '2': pauseTicker(s);  break;
+                    case '3': resumeTicker(s); break;
+                    case '4': zeroHandler(s);  break;
                     case '5': addTickerHttpReceiver(s);  break;
-                    case '6': getTickerCurrentStatus(s);  break;
-                    case '7': addTickerUdpReceiver(s);  break;
-                    default : zeroHandler(s); break;
+                    case '6': getTickerCurrentStatus(s); break;
+                    case '7': addTickerUdpReceiver(s);   break;
+                    case '8': zeroHandler(s);  break;
+                    default : zeroHandler(s);  break;
                 }
             }
             else {
@@ -155,6 +156,29 @@ public:
         if (server_response_buf.message_len > 0) {
             string s = Stringer::charBufToCharCodes(server_response_buf.message, server_response_buf.message_len, false);
             printf("\nServer response for pauseTicker() request: %s\n\n\n", s.data());
+        }
+        else {
+            cout << "\nServer responded with zero length message\n\n\n";
+        }
+    }
+
+
+    void resumeTicker(string s) {
+        cout << "Resume ticker request\n";
+        ResumeTickerRequestUdpPacketHeader request_pkt_hdr;
+        std::vector<std::string> tokens = splitToVector(s);
+        if (tokens.size() != ResumeTickerRequestUdpPacketHeaderSignificantFieldsCount) {
+            printf("Wrong number of arguments for resumeTicker. Expected: %d. Founded: %zu.\n", ResumeTickerRequestUdpPacketHeaderSignificantFieldsCount, tokens.size());
+        }
+        else {
+            request_pkt_hdr.command = strToChar(tokens[0]);
+            request_pkt_hdr.timer_no = strToChar(tokens[1]);
+        }
+        UDPmessageStruct server_response_buf;
+        server_response_buf = sendUDPmessage((char*)&request_pkt_hdr, sizeof(request_pkt_hdr));
+        if (server_response_buf.message_len > 0) {
+            string s = Stringer::charBufToCharCodes(server_response_buf.message, server_response_buf.message_len, false);
+            printf("\nServer response for resumeTicker() request: %s\n\n\n", s.data());
         }
         else {
             cout << "\nServer responded with zero length message\n\n\n";

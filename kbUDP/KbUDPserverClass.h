@@ -13,6 +13,7 @@
 #include "Stringer.h"
 #include "KbUdpPacketHeaders.h"
 #include "KbTickerThreadedClass.h"
+#include "KbShowTickersStatuses.h"
 
 
 using namespace std;
@@ -31,7 +32,7 @@ private:
     uint16_t                port_to_bind_to_;
                                      // Only 15 ticker (timers) simultaneously (1-15).  0 - indicates that the timer was not activated
     array<KbTickerThreadedClass, 16> tickers = { &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time, &do_not_show_current_time };
-
+    KbShowTickersStatuses   ticker_statuses_updater = KbShowTickersStatuses(&do_not_show_current_time, &tickers);
 
 public:
 
@@ -61,12 +62,14 @@ public:
         cout << "Bind done. Port  " << port_to_bind_to_ << "  is currently in listening mode.\n\n";
     }
 
+
     ~KbUDPServerClass() {
         closesocket(server_socket);
         WSACleanup();
         for (auto & obj : tickers)
             obj.stopThreadFunction(); // first_ticker.stopThreadFunction();
     }
+
 
     /**
      * @brief Basic UDP listener (just responds with incoming message).
@@ -164,6 +167,7 @@ public:
 
 
     void startUdpListenerForVmixTiming() {
+        ticker_statuses_updater.startThread();
         while (true) {
             do_not_show_current_time = true;
             printf("\n\n\nWaiting for data...\n\n\n");
@@ -257,7 +261,7 @@ public:
 
     void pauseTicker(const char* message, int message_len) {
         // First three bytes already checked (73,73,2)
-        cout << "\n\Pause Ticker\n\n";
+        cout << "\n\nPause Ticker\n\n";
         
         // parse PauseTimer header
         PauseTickerRequestUdpPacketHeader* request_pkt_hdr = (PauseTickerRequestUdpPacketHeader*)message;
@@ -269,11 +273,27 @@ public:
             if (sendto(server_socket, (char*)&response_pkt_hdr, sizeof(response_pkt_hdr), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR)
                 printf("sendto() failed with error code: %d", WSAGetLastError());
         }
+        else
+            cout << "\n\nTicker # cannot be zero\n\n";
     };
 
 
     void resumeTicker(const char* message, int message_len) {
-    
+        // First three bytes already checked (73,73,3)
+        cout << "\n\nResume Ticker\n\n";
+
+        // parse PauseTimer header
+        ResumeTickerRequestUdpPacketHeader* request_pkt_hdr = (ResumeTickerRequestUdpPacketHeader*)message;
+
+        if (request_pkt_hdr->timer_no > 0) {
+            tickers[request_pkt_hdr->timer_no].resumeThread();
+
+            GeneralResponseUdpPacketHeader response_pkt_hdr;
+            if (sendto(server_socket, (char*)&response_pkt_hdr, sizeof(response_pkt_hdr), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR)
+                printf("sendto() failed with error code: %d", WSAGetLastError());
+        }
+        else
+            cout << "\n\nTicker # cannot be zero\n\n";
     };
 
 

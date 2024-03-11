@@ -49,6 +49,18 @@ public:
         separate_thread_for_timer = std::thread(&KbTickerThreadedClass::threadFunction, this);
     }
 
+
+    void resumeThread() {
+        if (ticker_no > 0) {
+            if ( isThreadActive() )
+                cout << "Ticker # " << ticker_no << "already active";
+            else {
+                startThread(last_sent_mm, last_sent_ss, end_mins_, end_secs_);
+            }
+        }
+    }
+
+
     void stopThreadFunction() {
         stopThreadFlag = true;
 
@@ -57,12 +69,15 @@ public:
         }
     }
 
+
+
+
     void threadFunction() {
         start_time_  = chrono::system_clock::now(); // chrono::floor<chrono::seconds>()
         next_time_   = start_time_;
-        end_time_    = start_time_;
         start_time_ -= 1s * (60 * start_mins_);
         start_time_ -= 1s * start_secs_;
+        end_time_ = start_time_;
         end_time_   += 1s * (60 * end_mins_);
         end_time_   += 1s * end_secs_;
         chrono::time_point<chrono::system_clock> breakpoint_time_;
@@ -104,8 +119,8 @@ public:
         uint8_t ss = timenow.seconds().count();
         last_sent_mm = mm;
         last_sent_ss = ss;
-        if ( ! *do_not_show_current_time_ )
-            cout << "\rNow       " << "\033[" << 9 + ticker_no * 8 << "G" << to_string(mm) << ':' << to_string(ss) << "   ";
+        //if ( ! *do_not_show_current_time_ )
+        //    cout << "\rNow       " << "\033[" << 9 + ticker_no * 8 << "G" << to_string(mm) << ':' << to_string(ss) << "   ";
         for (const auto& obj : udp_tcp_receivers.ticker_receivers)
             obj->sendPacketMMSS(mm, ss, ticker_no);
     }

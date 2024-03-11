@@ -27,6 +27,7 @@
     </ClInclude>
     <ClInclude Include="$(MSBuildThisFileDirectory)KbTickerReceivers.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)KbTickers.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)KbShowTickersStatuses.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="$(MSBuildThisFileDirectory)KbUDPPacketsDescription.txt">
