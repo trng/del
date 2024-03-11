@@ -20,7 +20,7 @@ uint16_t udp_port_to_bind_to = 8888;
 int main(int argc, char* argv[])
 {
     // Console window set-up
-    // (title, disaale cursor, disable mouse select, disable manual scroll - otherwise code execution in the console is suspended)
+    // (set window title, disable cursor, disable mouse select, disable manual scroll - otherwise code execution in the console is suspended)
     {
         // Set window width
         system("mode con: cols=140 lines=25");

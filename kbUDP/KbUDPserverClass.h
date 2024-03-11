@@ -182,8 +182,12 @@ public:
                 if (tickers[i].ticker_no > 0) cout << "\rEnd time  " << "\033[" << 9 + i * 8 << "G" << to_string(tickers[i].end_mins_) << ':' << to_string(tickers[i].end_secs_) << "   ";
             cout << '\n';
             for ( size_t i = 1; i < tickers.size(); i++ )
-                if (tickers[i].ticker_no > 0) cout << "\rUDP + HTTP" << "\033[" << 9 + i * 8 << "G" << to_string(tickers[i].udp_tcp_receivers.ticker_receivers.size()) << "   ";
+                if (tickers[i].ticker_no > 0) cout << "\rUDP + HTTP" << "\033[" << 9 + i * 8 << "G" << to_string(tickers[i].udp_tcp_per_second_receivers.ticker_receivers.size()) << "   ";
             cout << '\n';
+            for (size_t i = 1; i < tickers.size(); i++)
+                if (tickers[i].ticker_no > 0) cout << "\rEnd Time  " << "\033[" << 9 + i * 8 << "G" << to_string(tickers[i].udp_tcp_end_time_receivers.ticker_receivers.size()) << "   ";
+            cout << '\n';
+
             do_not_show_current_time = false;
 
             fflush(stdout);
@@ -331,7 +335,7 @@ public:
         *   First three bytes already checked (73, 73, command-code)
         */ 
 
-        // parse starttimer header
+        // parse udp header
         AddTimerUdpReceiverRequestUdpPacketHeader * pktHdr  = (AddTimerUdpReceiverRequestUdpPacketHeader*)message;
         GeneralResponseUdpPacketHeader response_pkt_hdr;
         if (pktHdr->timer_no == 0) {
@@ -341,7 +345,7 @@ public:
         else {
             printf("\ncommand %d   timer_no %d     \n", pktHdr->command, pktHdr->timer_no);
             //first_ticker.socketInit(pktHdr->ipv4_addr, pktHdr->udp_port);
-            tickers[pktHdr->timer_no].udp_tcp_receivers.addUdpReceiver(pktHdr->ipv4_addr, pktHdr->udp_port);
+            tickers[pktHdr->timer_no].udp_tcp_per_second_receivers.addUdpReceiver(pktHdr->ipv4_addr, pktHdr->udp_port);
         }
         
         if (sendto(server_socket, (char*)&response_pkt_hdr, sizeof(response_pkt_hdr), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR)
@@ -350,6 +354,24 @@ public:
 
     void subscribeToEndTimeEvent(const char* message, const int message_len) {
         cout << "\n\nSubscribe to end time event\n\n";
+        /**
+        *   First three bytes already checked (73, 73, command-code)
+        */
+        // parse udp header
+        AddTimerUdpReceiverRequestUdpPacketHeader* pktHdr = (AddTimerUdpReceiverRequestUdpPacketHeader*)message;
+        GeneralResponseUdpPacketHeader response_pkt_hdr;
+        if (pktHdr->timer_no == 0) {
+            // error
+            response_pkt_hdr.response_code = KbResponseCodesEnum::wrong_timer_number;
+        }
+        else {
+            printf("\ncommand %d   timer_no %d     \n", pktHdr->command, pktHdr->timer_no);
+            //first_ticker.socketInit(pktHdr->ipv4_addr, pktHdr->udp_port);
+            tickers[pktHdr->timer_no].udp_tcp_end_time_receivers.addUdpReceiver(pktHdr->ipv4_addr, pktHdr->udp_port);
+        }
+
+        if (sendto(server_socket, (char*)&response_pkt_hdr, sizeof(response_pkt_hdr), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR)
+            printf("sendto() failed with error code: %d", WSAGetLastError());
     }
 
     void addHttpReceiver(const char* message, const int message_len) {
@@ -372,7 +394,7 @@ public:
             // message[message_len] = 0;
             //string s = message;
             //s.erase(0, sizeof(AddTimerHttpReceiverRequestUdpPacketHeader));
-            tickers[pktHdr->fixed_part.timer_no].udp_tcp_receivers.addHttpReceiver(pktHdr->fixed_part.ipv4_addr, pktHdr->fixed_part.tcp_port, pktHdr->path);
+            tickers[pktHdr->fixed_part.timer_no].udp_tcp_per_second_receivers.addHttpReceiver(pktHdr->fixed_part.ipv4_addr, pktHdr->fixed_part.tcp_port, pktHdr->path);
         }
 
         if (sendto(server_socket, (char*)&response_pkt_hdr, sizeof(response_pkt_hdr), 0, (sockaddr*)&client, sizeof(sockaddr_in)) == SOCKET_ERROR)

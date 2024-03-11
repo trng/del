@@ -94,7 +94,7 @@ public:
                     case '5': addTickerHttpReceiver(s);  break;
                     case '6': getTickerCurrentStatus(s); break;
                     case '7': addTickerUdpReceiver(s);   break;
-                    case '8': zeroHandler(s);  break;
+                    case '8': addTickerEndTimeUdpReceiver(s); break;
                     default : zeroHandler(s);  break;
                 }
             }
@@ -233,6 +233,38 @@ public:
                 cout << "\nServer responded with zero length message\n\n\n";
         }
     }
+
+
+    void addTickerEndTimeUdpReceiver(string s) {
+        cout << "Subscribe to End Time ticker event\n";
+        AddTimerUdpReceiverRequestUdpPacketHeader request_pkt_hdr;
+        vector<std::string> tokens = splitToVector(s);
+        if (tokens.size() != AddTimerUdpReceiverRequestUdpPacketHeaderSignificantFieldsCount + 3) {
+            printf("Wrong number of arguments for subscribe to timer . Expected: %d. Founded: %zu.\n", AddTimerUdpReceiverRequestUdpPacketHeaderSignificantFieldsCount, tokens.size());
+        }
+        else {
+            request_pkt_hdr.command = strToChar(tokens[0]);
+            request_pkt_hdr.timer_no = strToChar(tokens[1]);
+            request_pkt_hdr.ipv4_addr[0] = strToChar(tokens[2]);
+            request_pkt_hdr.ipv4_addr[1] = strToChar(tokens[3]);
+            request_pkt_hdr.ipv4_addr[2] = strToChar(tokens[4]);
+            request_pkt_hdr.ipv4_addr[3] = strToChar(tokens[5]);
+            request_pkt_hdr.udp_port = stoi(tokens[6]);
+
+            UDPmessageStruct server_response_buf;
+            // no variable lenght params in this request. So, request header is a full request message
+            server_response_buf = sendUDPmessage((char*)&request_pkt_hdr, sizeof(request_pkt_hdr));
+            if (server_response_buf.message_len > 0)
+                cout << "\nServer response: " << Stringer::charBufToCharCodes(server_response_buf.message, server_response_buf.message_len) << "\n\n\n";
+            else
+                cout << "\nServer responded with zero length message\n\n\n";
+        }
+    }
+
+
+
+
+
 
     void addTickerHttpReceiver(std::string s) {
         cout << "Add timer http receiver request\n";

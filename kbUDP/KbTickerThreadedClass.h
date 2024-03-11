@@ -35,7 +35,9 @@ public:
     uint8_t           end_secs_    = 0;
     uint8_t           last_sent_mm = 0; // atomic_uint8_t?
     uint8_t           last_sent_ss = 0; // atomic_uint8_t?
-    KbTickerReceivers udp_tcp_receivers;
+    KbTickerReceivers udp_tcp_per_second_receivers;
+    KbTickerReceivers udp_tcp_end_time_receivers;
+
 
 
     KbTickerThreadedClass(bool* ptr) : do_not_show_current_time_(ptr) {}
@@ -63,13 +65,9 @@ public:
 
     void stopThreadFunction() {
         stopThreadFlag = true;
-
-        if (separate_thread_for_timer.joinable()) {
+        if (separate_thread_for_timer.joinable())
             separate_thread_for_timer.join();
-        }
     }
-
-
 
 
     void threadFunction() {
@@ -92,7 +90,7 @@ public:
                     breakpoint_time_ = chrono::system_clock::now(); // chrono::floor<chrono::seconds>()
                     next_time_ += 1s;
                     if (next_time_ <= breakpoint_time_)
-                        next_time_ = breakpoint_time_ + 1s;
+                        next_time_ = breakpoint_time_ + 1s; // next_time_ <= breakpoint_time_ mean trouble occures (in most cases ticker was suspended by user and/or by system)
                     
                 } else {
                     // end time
@@ -100,28 +98,28 @@ public:
                     // 2. stop http-get requests to vmix
                     // 3. stop udp sends to controller
                     stopThreadFlag = true;
+                    for (const auto& obj : udp_tcp_end_time_receivers.ticker_receivers)
+                        obj->sendPacketMMSS(last_sent_mm, last_sent_ss, ticker_no);
                 }
             }
         }
     }
 
+
     bool isThreadActive() const {
         return separate_thread_for_timer.joinable();
     }
 
+
     void per_second_updates() {
-        auto now = chrono::system_clock::now(); // chrono::floor<chrono::seconds>()
-        chrono::hh_mm_ss hms { now - floor<chrono::days>(now)};
-        
-        // const std::time_t t_c = std::chrono::system_clock::to_time_t(next_time_ - start_time_);
+        //auto now = chrono::system_clock::now(); // chrono::floor<chrono::seconds>()
+        //chrono::hh_mm_ss hms { now - floor<chrono::days>(now)};
         chrono::hh_mm_ss timenow{ chrono::floor<chrono::seconds>(next_time_ - start_time_) };
         uint8_t mm = timenow.hours().count()*60 + timenow.minutes().count();
         uint8_t ss = timenow.seconds().count();
         last_sent_mm = mm;
         last_sent_ss = ss;
-        //if ( ! *do_not_show_current_time_ )
-        //    cout << "\rNow       " << "\033[" << 9 + ticker_no * 8 << "G" << to_string(mm) << ':' << to_string(ss) << "   ";
-        for (const auto& obj : udp_tcp_receivers.ticker_receivers)
+        for (const auto& obj : udp_tcp_per_second_receivers.ticker_receivers)
             obj->sendPacketMMSS(mm, ss, ticker_no);
     }
 
