@@ -3,15 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Enter TOTP Code</title>
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const value = params.get('qwe');
-    console.log(value); // "rty"
-
-    // document.getElementById("qwe").innerHTML = ">>>" + value + "<<<";
-    document.getElementById("qwe").innerHTML = "eeeee";
-    
-  </script>
 </head>
 <body>
   <form method="POST" action="submit.php">
@@ -22,5 +13,11 @@
     </label>
     <button type="submit">Submit</button>
   </form>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const value = params.get('qwe');
+    document.getElementById("qwe").innerHTML = ">>>" + value + "<<<";
+  </script>
+
 </body>
 </html>
